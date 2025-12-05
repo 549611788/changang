@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文字修仙模拟器（网页版）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "仿宋", "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.8;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #1e293b;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 0 20px rgba(0, 255, 213, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #06b6d4;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #2dd4bf;
+            padding-bottom: 15px;
+        }
+        .status {
+            background-color: #27374d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #06b6d4;
+        }
+        .status h2 {
+            color: #f0fdfa;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        .status p {
+            margin: 8px 0;
+            font-size: 1.1rem;
+        }
+        .menu {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        @media (max-width: 600px) {
+            .menu {
+                grid-template-columns: 1fr;
+            }
+        }
+        .btn {
+            background-color: #0891b2;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background-color: #06b6d4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 255, 213, 0.2);
+        }
+        .log {
+            background-color: #27374d;
+            border-radius: 8px;
+            padding: 20px;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 1.05rem;
+        }
+        .log p {
+            margin: 6px 0;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background-color: #1e293b;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            width: 90%;
+            max-width: 500px;
+        }
+        .modal h2 {
+            color: #06b6d4;
+            margin-bottom: 20px;
+        }
+        .modal input {
+            padding: 12px;
+            width: 80%;
+            margin-bottom: 20px;
+            border: 2px solid #0891b2;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            background-color: #27374d;
+            color: white;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>文字修仙模拟器</h1>
+
+        <!-- 角色状态面板 -->
+        <div class="status">
+            <h2>【角色状态】</h2>
+            <p>道号：<span id="name">未命名</span></p>
+            <p>境界：<span id="realm">入门</span> <span id="level">1</span>级</p>
+            <p>生命值：<span id="hp">100</span>/<span id="maxHp">100</span></p>
+            <p>攻击力：<span id="attack">20</span> | 防御力：<span id="defense">10</span></p>
+            <p>灵石：<span id="spiritStone">100</span> | 丹药：<span id="pill">3</span></p>
+            <p>装备：<span id="equipment">无</span></p>
+        </div>
+
+        <!-- 功能菜单按钮 -->
+        <div class="menu">
+            <button class="btn" onclick="showStatus()">查看状态</button>
+            <button class="btn" onclick="cultivate()">盘膝修炼</button>
+            <button class="btn" onclick="fightMonster()">深山历练</button>
+            <button class="btn" onclick="usePill()">使用丹药</button>
+            <button class="btn" onclick="shop()">宗门商店</button>
+            <button class="btn" onclick="resetGame()">重置游戏</button>
+        </div>
+
+        <!-- 日志面板 -->
+        <div class="log" id="log">
+            <p>欢迎来到修仙世界，从此踏上逆天改命之路！</p>
+        </div>
+    </div>
+
+    <!-- 初始命名弹窗 -->
+    <div class="modal" id="nameModal">
+        <div class="modal-content">
+            <h2>请输入你的道号</h2>
+            <input type="text" id="nameInput" placeholder="例如：韩立、徐凤年" maxlength="8">
+            <button class="btn" onclick="initGame()">开始修仙</button>
+        </div>
+    </div>
+
+    <!-- 突破境界弹窗 -->
+    <div class="modal" id="breakthroughModal">
+        <div class="modal-content">
+            <h2>灵力充盈，即将突破境界！</h2>
+            <p>是否使用丹药辅助（成功率+30%）？</p>
+            <button class="btn" onclick="breakthrough(true)">使用丹药</button>
+            <button class="btn" onclick="breakthrough(false)">强行突破</button>
+        </div>
+    </div>
+
+    <script>
+        // 游戏数据存储（本地存储，刷新不丢失）
+        let gameData = {
+            name: "",
+            realm: 0, // 0-入门，1-筑基，2-金丹，3-元婴，4-化神，5-渡劫，6-仙人
+            level: 1,
+            hp: 100,
+            attack: 20,
+            defense: 10,
+            spiritStone: 100,
+            pill: 3,
+            hasSword: false,
+            realmNames: ["入门", "筑基", "金丹", "元婴", "化神", "渡劫", "仙人"],
+            realmAttrs: [
+                { hp: 100, attack: 20, defense: 10 },   // 入门
+                { hp: 300, attack: 50, defense: 30 },   // 筑基
+                { hp: 800, attack: 120, defense: 80 },  // 金丹
+                { hp: 2000, attack: 300, defense: 200 },// 元婴
+                { hp: 5000, attack: 800, defense: 500 },// 化神
+                { hp: 15000, attack: 2000, defense: 1500 },// 渡劫
+                { hp: 50000, attack: 5000, defense: 3000 }// 仙人
+            ]
+        };
+
+        // DOM元素
+        const logEl = document.getElementById("log");
+        const nameModal = document.getElementById("nameModal");
+        const breakthroughModal = document.getElementById("breakthroughModal");
+
+        // 初始化游戏（读取本地存储或新建角色）
+        window.onload = () => {
+            const savedData = localStorage.getItem("cultivationGame");
+            if (savedData) {
+                gameData = JSON.parse(savedData);
+                updateUI();
+                addLog(`欢迎回来，${gameData.name}道友！`);
+            } else {
+                nameModal.classList.remove("hidden");
+            }
+        };
+
+        // 初始化新角色
+        function initGame() {
+            const name = document.getElementById("nameInput").value.trim() || "无名道友";
+            gameData.name = name;
+            localStorage.setItem("cultivationGame", JSON.stringify(gameData));
+            nameModal.classList.add("hidden");
+            updateUI();
+            addLog(`道号${name}，从此踏上修仙之路！`);
+        }
+
+        // 更新UI显示
+        function updateUI() {
+            document.getElementById("name").textContent = gameData.name;
+            document.getElementById("realm").textContent = gameData.realmNames[gameData.realm];
+            document.getElementById("level").textContent = gameData.level;
+            document.getElementById("hp").textContent = gameData.hp;
+            document.getElementById("maxHp").textContent = gameData.realmAttrs[gameData.realm].hp * gameData.level;
+            document.getElementById("attack").textContent = gameData.attack + (gameData.hasSword ? 100 : 0);
+            document.getElementById("defense").textContent = gameData.defense;
+            document.getElementById("spiritStone").textContent = gameData.spiritStone;
+            document.getElementById("pill").textContent = gameData.pill;
+            document.getElementById("equipment").textContent = gameData.hasSword ? "飞剑（+100攻击力）" : "无";
+            // 保存数据到本地存储
+            localStorage.setItem("cultivationGame", JSON.stringify(gameData));
+        }
+
+        // 添加日志
+        function addLog(text) {
+            const p = document.createElement("p");
+            p.textContent = text;
+            logEl.appendChild(p);
+            logEl.scrollTop = logEl.scrollHeight; // 自动滚动到底部
+        }
+
+        // 查看状态
+        function showStatus() {
+            addLog(`【${gameData.name}当前状态】：${gameData.realmNames[gameData.realm]}${gameData.level}级，生命值${gameData.hp}/${gameData.realmAttrs[gameData.realm].hp * gameData.level}，攻击力${gameData.attack + (gameData.hasSword ? 100 : 0)}，防御力${gameData.defense}，灵石${gameData.spiritStone}，丹药${gameData.pill}`);
+        }
+
+        // 修炼
+        function cultivate() {
+            addLog("你开始盘膝打坐，运转灵力修炼...");
+            const exp = Math.floor(Math.random() * 50) + 30; // 随机30-80点灵力
+            addLog(`获得${exp}点灵力！`);
+
+            // 升级条件：等级越高，需要的灵力越多（每级需要100 - 等级*10 点）
+            const needExp = 100 - (gameData.level * 10);
+            if (exp >= needExp) {
+                gameData.level++;
+                addLog(`恭喜！晋升为${gameData.realmNames[gameData.realm]}${gameData.level}级！`);
+                // 等级提升属性加成
+                gameData.hp += Math.floor(gameData.realmAttrs[gameData.realm].hp / 5);
+                gameData.attack += Math.floor(gameData.realmAttrs[gameData.realm].attack / 5);
+                gameData.defense += Math.floor(gameData.realmAttrs[gameData.realm].defense / 5);
+                // 防止生命值超过上限
+                gameData.hp = Math.min(gameData.hp, gameData.realmAttrs[gameData.realm].hp * gameData.level);
+
+                // 9级后触发突破
+                if (gameData.level >= 10) {
+                    if (gameData.realm === 6) { // 仙人境界封顶
+                        gameData.level = 9;
+                        addLog("你已达到修仙之巅，成为永恒仙人！");
+                        updateUI();
+                        return;
+                    }
+                    // 显示突破弹窗
+                    breakthroughModal.classList.remove("hidden");
+                }
+            } else {
+                addLog(`修炼进度不足（还需${needExp - exp}点），继续努力！`);
+            }
+            updateUI();
+        }
+
+        // 突破境界
+        function breakthrough(usePill) {
+            breakthroughModal.classList.add("hidden");
+            let successRate = usePill && gameData.pill > 0 ? 80 : 50;
+            const success = Math.random() * 100 < successRate;
+
+            if (success) {
+                gameData.realm++;
+                gameData.level = 1;
+                // 境界突破属性重置为新境界基础值
+                gameData.hp = gameData.realmAttrs[gameData.realm].hp;
+                gameData.attack = gameData.realmAttrs[gameData.realm].attack;
+                gameData.defense = gameData.realmAttrs[gameData.realm].defense;
+                addLog(`恭喜！成功突破至${gameData.realmNames[gameData.realm]}境界！`);
+                if (usePill) gameData.pill--;
+            } else {
+                gameData.hp = Math.floor(gameData.hp * 0.7); // 灵力反噬，生命值剩70%
+                addLog("突破失败！灵力反噬，生命值减少30%...");
+                if (usePill) gameData.pill--;
+            }
+            updateUI();
+        }
+
+        // 打怪
+        function fightMonster() {
+            if (gameData.realm < 1) { // 筑基以下不能历练
+                addLog("你修为尚浅，外出历练易遭危险！建议先突破至筑基境。");
+                return;
+            }
+
+            // 怪物数据（按境界匹配）
+            const monsters = [
+                { name: "野狼", hp: 200, attack: 50 },    // 筑基
+                { name: "妖狐", hp: 500, attack: 100 },   // 金丹
+                { name: "巨蟒", hp: 1200, attack: 300 },  // 元婴
+                { name: "鬼将", hp: 3000, attack: 800 },  // 化神
+                { name: "雷神", hp: 8000, attack: 2000 }, // 渡劫
+                { name: "魔神", hp: 20000, attack: 5000 } // 仙人
+            ];
+            const monsterIdx = Math.min(gameData.realm - 1, 5);
+            const monster = monsters[monsterIdx];
+            addLog(`你进入深山历练，遭遇${monster.name}！`);
+            addLog(`${monster.name}：生命值${monster.hp}，攻击力${monster.attack}`);
+
+            // 战斗循环
+            let monsterHp = monster.hp;
+            let playerHp = gameData.hp;
+            while (playerHp > 0 && monsterHp > 0) {
+                // 玩家攻击
+                const playerAtk = gameData.attack + (gameData.hasSword ? 100 : 0);
+                const damageToMonster = Math.max(playerAtk - Math.floor(monster.attack / 3), 10);
+                monsterHp -= damageToMonster;
+                addLog(`你打出一击，对${monster.name}造成${damageToMonster}点伤害！`);
+
+                if (monsterHp <= 0) break;
+
+                // 怪物反击
+                const damageToPlayer = Math.max(monster.attack - Math.floor(gameData.defense / 2), 5);
+                playerHp -= damageToPlayer;
+                addLog(`${monster.name}反击，对你造成${damageToPlayer}点伤害！`);
+
+                if (playerHp <= 0) {
+                    addLog(`你被${monster.name}击败，重伤退回宗门！`);
+                    gameData.hp = Math.floor(gameData.realmAttrs[gameData.realm].hp * gameData.level * 0.3);
+                    gameData.spiritStone = Math.max(0, gameData.spiritStone - 50);
+                    updateUI();
+                    return;
+                }
+            }
+
+            // 战斗胜利
+            addLog(`恭喜！成功斩杀${monster.name}！`);
+            const gainStone = Math.floor(Math.random() * 200) + 100;
+            gameData.spiritStone += gainStone;
+            addLog(`获得${gainStone}枚灵石！`);
+
+            // 随机掉落
+            const dropRate = Math.random() * 100;
+            if (dropRate < 30 && !gameData.hasSword) {
+                gameData.hasSword = true;
+                addLog("意外获得法宝【飞剑】！攻击力+100！");
+            } else if (dropRate < 50) {
+                const gainPill = Math.floor(Math.random() * 3) + 1;
+                gameData.pill += gainPill;
+                addLog(`获得${gainPill}枚丹药！`);
+            }
+
+            gameData.hp = playerHp; // 更新玩家剩余生命值
+            updateUI();
+        }
+
+        // 使用丹药
+        function usePill() {
+            if (gameData.pill <= 0) {
+                addLog("丹药耗尽，无法使用！");
+                return;
+            }
+            const heal = Math.floor(gameData.realmAttrs[gameData.realm].hp * 0.5);
+            gameData.hp = Math.min(gameData.hp + heal, gameData.realmAttrs[gameData.realm].hp * gameData.level);
+            gameData.pill--;
+            addLog(`使用1枚丹药，恢复${heal}点生命值！当前生命值：${gameData.hp}`);
+            updateUI();
+        }
+
+        // 宗门商店
+        function shop() {
+            addLog("===== 宗门商店 =====");
+            addLog("1. 丹药（100灵石/枚）  2. 退出商店");
+            addLog(`你的灵石：${gameData.spiritStone}，当前丹药：${gameData.pill}`);
+            
+            // 模拟输入选择（网页端用prompt简化）
+            const choice = prompt("请输入操作序号（1-2）：", "1");
+            if (choice === "1") {
+                if (gameData.spiritStone >= 100) {
+                    gameData.spiritStone -= 100;
+                    gameData.pill++;
+                    addLog("购买成功！丹药数量：" + gameData.pill);
+                } else {
+                    addLog("灵石不足，无法购买！");
+                }
+            } else if (choice === "2") {
+                addLog("退出商店。");
+            } else {
+                addLog("无效选择，退出商店。");
+            }
+            updateUI();
+        }
+
+        // 重置游戏
+        function resetGame() {
+            if (confirm("确定要重置游戏吗？所有进度将丢失！")) {
+                localStorage.removeItem("cultivationGame");
+                gameData = {
+                    name: "",
+                    realm: 0,
+                    level: 1,
+                    hp: 100,
+                    attack: 20,
+                    defense: 10,
+                    spiritStone: 100,
+                    pill: 3,
+                    hasSword: false,
+                    realmNames: ["入门", "筑基", "金丹", "元婴", "化神", "渡劫", "仙人"],
+                    realmAttrs: [
+                        { hp: 100, attack: 20, defense: 10 },
+                        { hp: 300, attack: 50, defense: 30 },
+                        { hp: 800, attack: 120, defense: 80 },
+                        { hp: 2000, attack: 300, defense: 200 },
+                        { hp: 5000, attack: 800, defense: 500 },
+                        { hp: 15000, attack: 2000, defense: 1500 },
+                        { hp: 50000, attack: 5000, defense: 3000 }
+                    ]
+                };
+                nameModal.classList.remove("hidden");
+                logEl.innerHTML = "<p>欢迎来到修仙世界，从此踏上逆天改命之路！</p>";
+                updateUI();
+            }
+        }
+    </script>
+</body>
+</html>
